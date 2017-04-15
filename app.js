@@ -1,10 +1,11 @@
+require('dotenv').config();
 var express = require('express');
 var request = require('request');
 
 // Store our app's ID and Secret. These we got from Step 1. 
 // For this tutorial, we'll keep your API credentials right here. But for an actual app, you'll want to  store them securely in environment variables. 
-var clientId = '143964481105.169654688450';
-var clientSecret = 'c16f9e3c16da70584634a7c314863c1f';
+var clientId = process.env.SLACK_CLIENT_ID;
+var clientSecret = process.env.SLACK_SECRET;
 
 // Instantiates Express and assigns our app variable to it
 var app = express();
