@@ -3,6 +3,9 @@ const express = require('express');
 const request = require('request');
 const bodyParser = require('body-parser');
 const chalk = require('chalk');
+const querystring = require('querystring');
+
+const spotify = require('./spotify');
 
 const app = express();
 app.use(bodyParser.json());
@@ -39,17 +42,43 @@ app.get('/oauth', (res, req) => {
     }
 });
 
-app.get('/jukebox', (req, res) => {
-    res.json({
-        "text": "*bold* `code` _italic_ ~strike~",
-        "username": "JukeBot",
-        "mrkdwn": true
-    })
+app.post('/jukebox', (req, res) => {
+
+    let searchStr = req.body.text ? req.body.text : '';
+
+    if (!(req.body.channel_name === 'jukebox' || req.body.channel_name === 'test')) {
+        res.json({
+            "text": "I _only_ take orders from *Channel: _jukebox_*... :deal_with_it:",
+            "username": "JukeBot",
+            "mrkdwn": true
+        });
+    } else if (searchStr === '') {
+        res.json({
+            "text": "How Bout Some Dave????",
+            "username": "JukeBot",
+            "mrkdwn": true
+        });
+    } else {
+        spotify.search(querystring.stringify({
+            type: 'track',
+            q: searchStr,
+            limit: 5
+        }), (err, data) => {
+            if (err) throw err;
+
+            console.log(data);
+        });
+
+        res.json({
+            "text": "*Let me see what I can find... :notes::musical_note:    :aw_yeah:*",
+            "username": "JukeBot",
+            "mrkdwn": true
+        });
+    }
 })
 
 
 
 app.listen(process.env.PORT, () => {
-    //Callback triggered when server is successfully listening. Hurray!
     console.log("Listening on Port: " + process.env.PORT + "...");
 });
