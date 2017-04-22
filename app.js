@@ -62,18 +62,65 @@ app.post('/jukebox', (req, res) => {
         spotify.search(querystring.stringify({
             type: 'track',
             q: searchStr,
-            limit: 5
+            limit: 3
         }), (err, data) => {
             if (err) throw err;
 
-            console.log(data);
+            let searchData = JSON.parse(data);
+
+            let tracks = null;
+            if (searchData.tracks.items.length > 0) {
+                tracks = [];
+
+                for (let item of searchData.tracks.items) {
+                    let track = {};
+
+                    track.color = "#269900";
+                    track.thumb_url = item.album.images[1].url;
+                    track.title = item.name;
+
+                    track.fields = [
+                        {
+                            title: "Album",
+                            value: item.album.name,
+                            short: true
+                        },
+                        {
+                            title: "Artist",
+                            value: item.artists[0].name,
+                            short: true
+                        }
+                    ];
+
+                    track.actions = [
+                        {
+                            "name": "search",
+                            "text": "Add to Queue",
+                            "type": "button",
+                            "value": item.uri
+                        }
+                    ]
+
+                    tracks.push(track);
+                }
+
+                res.json({
+                    "text": "",
+                    "username": "JukeBot",
+                    "mrkdwn": true,
+                    "attachments": tracks
+                });
+            } else {
+                res.json({
+                    "text": "I didn't find anything... :cry:",
+                    "username": "JukeBot",
+                    "mrkdwn": true
+                });
+            }
+
         });
 
-        res.json({
-            "text": "*Let me see what I can find... :notes::musical_note:    :aw_yeah:*",
-            "username": "JukeBot",
-            "mrkdwn": true
-        });
+
     }
 })
 
