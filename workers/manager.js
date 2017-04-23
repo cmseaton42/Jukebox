@@ -1,9 +1,9 @@
-const watchCurrentlyPlaying = require('./watch-currently-playing');
+const player = require('./player');
 const refreshAccessToken = require('./refresh-access-token');
 
 module.exports = (state) => {
 
-    watchCurrentlyPlaying.initialize(state);
+    player.initialize(state);
     refreshAccessToken.initialize(state);
 
 }

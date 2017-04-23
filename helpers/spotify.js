@@ -68,10 +68,8 @@ module.exports.getRemainingDuration = (accessToken, callback) => {
 
     if (err) {
       callback(err, null);
-    } else if (response.statusCode !== 200) {
-      callback(new Error(response.statusCode + ': User Query Failed'), null);
     } else {
-      callback(null, JSON.parse(body));
+      callback(null, response, JSON.parse(body));
     }
   });
 };
@@ -91,10 +89,8 @@ module.exports.playTrack = (trackURI, accessToken, callback) => {
   request.put(options, (err, response, body) => {
     if (err) {
       callback(err, null);
-    } else if (response.statusCode !== 204 || response.statusCode !== 204) {
-      callback(new Error(response.statusCode + ': User Query Failed'), null);
     } else {
-      callback(null, response.statusCode);
+      callback(null, response);
     }
   });
 }

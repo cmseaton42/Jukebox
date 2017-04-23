@@ -11,12 +11,12 @@ const spotify = require('./helpers/spotify');
 const app = express();
 let state = {
     queue: [],
-    pingSpotifyInterval: null,
-    timeSinceLastTokenRefresh: 0,
-    tokenTimeoutLimit: 60 * 30 * 1000, // 30 minutes in ms
-    tokenIsValid: false,
+    player: null,
+    tokenManager: null,
+    tokenTimeoutLimit: 1000 * 60 * 45, // 30 minutes in ms
     pingingCurrentPlayback: false,
     playingNextTrack: false,
+    refreshingToken: false,
     accessToken: null
 }
 
