@@ -1,7 +1,7 @@
 const index = require('./index');
 const interactions = require('./interactions');
 const jukebox = require('./jukebox');
-const oauth = require('/oauth');
+const oauth = require('./oauth');
 
 module.exports = (app, state) => {
 

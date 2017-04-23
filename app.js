@@ -33,50 +33,50 @@ app.listen(process.env.PORT, () => {
 
 function pingSpotify() {
 
-    if (timeSinceLastTokenRefresh >= tokenTimeoutLimit) tokenIsValid = false;
+    if (state.timeSinceLastTokenRefresh >= state.tokenTimeoutLimit) state.tokenIsValid = false;
 
-    if (tokenIsValid) {
-        pingingCurrentPlayback = true;
+    if (state.tokenIsValid) {
+        state.pingingCurrentPlayback = true;
 
-        if (queue.length > 0) {
-            spotify.getRemainingDuration(accessToken, (err, data) => {
+        if (state.queue.length > 0) {
+            spotify.getRemainingDuration(state.accessToken, (err, data) => {
                 if (err) throw err;
 
-                pingingCurrentPlayback = false;
+                state.pingingCurrentPlayback = false;
                 let remainingTime = data.item.duration_ms - (data.progress_ms === null ? 0 : data.progress_ms);
 
                 if (remainingTime <= 1000 || !(data.is_playing)) {
 
-                    let nextTrack = queue.shift();
-                    playingNextTrack = true;
+                    let nextTrack = state.queue.shift();
+                    state.playingNextTrack = true;
 
                     console.log(chalk.green('Playing: ') + nextTrack.track_name + ' - ' + nextTrack.artist)
 
                     if (nextTrack !== undefined) {
-                        spotify.playTrack(nextTrack.track_uri, accessToken, (err, status) => {
+                        spotify.playTrack(nextTrack.track_uri, state.accessToken, (err, status) => {
 
                             if (err) throw err;
 
-                            playingNextTrack = false;
+                            state.playingNextTrack = false;
                         });
                     }
                 }
             });
         }
-    } else if (!(tokenIsValid) && !(pingingCurrentPlayback) && !(playingNextTrack)) {
+    } else if (!(state.tokenIsValid) && !(state.pingingCurrentPlayback) && !(state.playingNextTrack)) {
 
         spotify.getAccessToken((err, data) => {
             if (err) throw err;
 
-            accessToken = data.access_token;
+            state.accessToken = data.access_token;
 
-            console.log(chalk.cyan('\nAccess Token Refreshed: ') + accessToken + '\n');
+            console.log(chalk.cyan('\nAccess Token Refreshed: ') + state.accessToken + '\n');
 
-            tokenIsValid = true;
-            timeSinceLastTokenRefresh = 0;
+            state.tokenIsValid = true;
+            state.timeSinceLastTokenRefresh = 0;
         });
 
     }
 
-    timeSinceLastTokenRefresh++;
+    state.timeSinceLastTokenRefresh++;
 }
