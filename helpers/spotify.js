@@ -67,7 +67,7 @@ module.exports.getRemainingDuration = (accessToken, callback) => {
   request.get(options, (err, response, body) => {
 
     if (err) {
-      callback(err, null);
+      callback(err, null, null);
     } else {
       callback(null, response, JSON.parse(body));
     }

@@ -11,7 +11,7 @@ module.exports.route = (app, state) => {
 
         let searchStr = req.body.text ? req.body.text : '';
 
-        if (req.body.token === process.env.SPOTIFY_TOKEN) {
+        if (req.body.token === process.env.SLACK_TOKEN) {
 
             if (!(req.body.channel_name === 'jukebox' || req.body.channel_name === 'test')) {
                 res.json({
