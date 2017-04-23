@@ -6,10 +6,10 @@ const chalk = require('chalk');
 const querystring = require('querystring');
 const router = require('./routes/router');
 const manager = require('./workers/manager');
-
 const spotify = require('./helpers/spotify');
 
 const app = express();
+
 let state = {
     queue: [],
     player: false,
