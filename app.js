@@ -10,6 +10,13 @@ const spotify = require('./spotify');
 const app = express();
 
 let queue = [];
+let pingSpotifyInterval = null;
+let timeSinceLastTokenRefresh = 0;
+let tokenTimeoutLimit = 60 * 30; // 30 minutes
+let tokenIsValid = false;
+let pingingCurrentPlayback = false;
+let playingNextTrack = false;
+let accessToken = null;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -57,7 +64,7 @@ app.post('/jukebox', (req, res) => {
         });
     } else if (searchStr === '') {
         res.json({
-            "text": "How Bout Some Dave????",
+            "text": "*HELP:* Start by trying the following command `/jukebox dave matthews band` :notes::musical_note:",
             "username": "JukeBot",
             "mrkdwn": true
         });
@@ -65,7 +72,7 @@ app.post('/jukebox', (req, res) => {
         spotify.search(querystring.stringify({
             type: 'track',
             q: searchStr,
-            limit: 3
+            limit: 5
         }), (err, data) => {
             if (err) throw err;
 
@@ -114,6 +121,21 @@ app.post('/jukebox', (req, res) => {
                     tracks.push(track);
                 }
 
+                let attachment = {
+                    color: "#03c2fb",
+                    callback_id: "Dismiss",
+                    actions: [
+                        {
+                            name: "dismiss",
+                            text: "Dismiss",
+                            type: "button",
+                            value: ""
+                        }
+                    ]
+                }
+
+                tracks.push(attachment);
+
                 res.json({
                     "text": "",
                     "username": "JukeBot",
@@ -145,14 +167,13 @@ app.post('/interactions', (req, res) => {
 
                 let user = payload.user;
 
+                console.log(chalk.yellow('Queueing: ') + track.track_name + ' - ' + track.artist)
                 queue.push(track);
 
-                console.log(chalk.green(queue.length));
-
                 res.status(200).json({
-                    text: ":heavy_check_mark: @" + user.name + " added _*" + track.track_name + "*_ to the play queue... :notes::musical_note:",
+                    text: ":white_check_mark: @" + user.name + " added _*" + track.track_name + "*_ to the play queue... :notes::musical_note:",
                     mrkdwn: true,
-                    replace_url: true,
+                    replace_original: true,
                     response_type: "in_channel",
                     attachments: [
                         {
@@ -174,7 +195,11 @@ app.post('/interactions', (req, res) => {
                     ]
                 });
                 break;
-        
+            case 'Dismiss':
+                 res.status(200).json({
+                    delete_original: true
+                 });
+                break;
             default:
                 break;
         }
@@ -185,5 +210,57 @@ app.post('/interactions', (req, res) => {
 });
 
 app.listen(process.env.PORT, () => {
-    console.log("Listening on Port: " + process.env.PORT + "...");
+    console.log(chalk.green("Listening on Port: ") + process.env.PORT + chalk.green("..."));
+
+    pingSpotifyInterval = setInterval(pingSpotify, 1000);
 });
+
+function pingSpotify() {
+
+    if (timeSinceLastTokenRefresh >= tokenTimeoutLimit) tokenIsValid = false;
+
+    if (tokenIsValid) {
+        pingingCurrentPlayback = true;
+
+        if (queue.length > 0) {
+            spotify.getRemainingDuration(accessToken, (err, data) => {
+                if (err) throw err;
+
+                pingingCurrentPlayback = false;
+                let remainingTime = data.item.duration_ms - (data.progress_ms === null ? 0 : data.progress_ms);
+
+                if (remainingTime <= 1000 || !(data.is_playing)) {
+
+                    let nextTrack = queue.shift();
+                    playingNextTrack = true;
+
+                    console.log(chalk.green('Playing: ') + nextTrack.track_name + ' - ' + nextTrack.artist)
+
+                    if (nextTrack !== undefined) {
+                        spotify.playTrack(nextTrack.track_uri, accessToken, (err, status) => {
+
+                            if (err) throw err;
+
+                            playingNextTrack = false;
+                        });
+                    }
+                }
+            });
+        }
+    } else if (!(tokenIsValid) && !(pingingCurrentPlayback) && !(playingNextTrack)) {
+
+        spotify.getAccessToken((err, data) => {
+            if (err) throw err;
+
+            accessToken = data.access_token;
+
+            console.log(chalk.cyan('\nAccess Token Refreshed: ') + accessToken + '\n');
+
+            tokenIsValid = true;
+            timeSinceLastTokenRefresh = 0;
+        });
+
+    }
+
+    timeSinceLastTokenRefresh++;
+}
