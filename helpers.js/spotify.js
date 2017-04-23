@@ -21,7 +21,7 @@ module.exports.search = (searchString, callback) => {
     } else if (response.statusCode !== 200) {
       callback(new Error(response.statusCode + ': Search Failed'), null);
     } else {
-      callback(null, body);
+      callback(null, JSON.parse(body));
     }
   });
 }

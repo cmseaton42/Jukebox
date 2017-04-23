@@ -4,210 +4,26 @@ const request = require('request');
 const bodyParser = require('body-parser');
 const chalk = require('chalk');
 const querystring = require('querystring');
+const router = require('./routes/router');
 
-const spotify = require('./spotify');
+const spotify = require('./helpers/spotify');
 
 const app = express();
-
-let queue = [];
-let pingSpotifyInterval = null;
-let timeSinceLastTokenRefresh = 0;
-let tokenTimeoutLimit = 60 * 30; // 30 minutes
-let tokenIsValid = false;
-let pingingCurrentPlayback = false;
-let playingNextTrack = false;
-let accessToken = null;
+let state = {
+    queue: [],
+    pingSpotifyInterval: null,
+    timeSinceLastTokenRefresh: 0,
+    tokenTimeoutLimit: 60 * 30 * 1000, // 30 minutes in ms
+    tokenIsValid: false,
+    pingingCurrentPlayback: false,
+    playingNextTrack: false,
+    accessToken: null
+}
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
-app.get('/', (req, res) => {
-    res.send('JukeBot is Alive!!!');
-});
-
-app.get('/oauth', (res, req) => {
-    if (!req.query.code) {
-        res.status(500);
-        res.send({ "error": "Looks like we're not getting code." });
-        console.log("Looks like we're not getting code.");
-    } else {
-        request({
-            url: 'https://slack.com/api/oauth.access', //URL to hit
-            qs: {  //Query string data
-                code: req.query.code,
-                client_id: process.env.SLACK_CLIENT_ID,
-                client_secret: process.env.SLACK_SECRET
-            },
-            method: 'GET', //Specify the method
-
-        }, (err, resp, body) => {
-            if (err) {
-                console.log(err);
-            } else {
-                res.json(body);
-
-            }
-        })
-    }
-});
-
-app.post('/jukebox', (req, res) => {
-
-    let searchStr = req.body.text ? req.body.text : '';
-
-    if (!(req.body.channel_name === 'jukebox' || req.body.channel_name === 'test')) {
-        res.json({
-            "text": "I _only_ take orders from *Channel: _jukebox_*... :deal_with_it:",
-            "username": "JukeBot",
-            "mrkdwn": true
-        });
-    } else if (searchStr === '') {
-        res.json({
-            "text": "*HELP:* Start by trying the following command `/jukebox dave matthews band` :notes::musical_note:",
-            "username": "JukeBot",
-            "mrkdwn": true
-        });
-    } else {
-        spotify.search(querystring.stringify({
-            type: 'track',
-            q: searchStr,
-            limit: 5
-        }), (err, data) => {
-            if (err) throw err;
-
-            let searchData = JSON.parse(data);
-
-            let tracks = null;
-            if (searchData.tracks.items.length > 0) {
-                tracks = [];
-
-                for (let item of searchData.tracks.items) {
-                    let track = {};
-
-                    track.color = "#03c2fb";
-                    track.callback_id = "Track_Search";
-                    track.thumb_url = item.album.images[1].url;
-                    track.title = item.name;
-
-                    track.fields = [
-                        {
-                            title: "Album",
-                            value: item.album.name,
-                            short: true
-                        },
-                        {
-                            title: "Artist",
-                            value: item.artists[0].name,
-                            short: true
-                        }
-                    ];
-
-                    track.actions = [
-                        {
-                            "name": "AddToQueue",
-                            "text": "Add to Queue",
-                            "type": "button",
-                            "value": JSON.stringify({
-                                album_name: item.album.name,
-                                album_url: item.album.images[1].url,
-                                artist: item.artists[0].name,
-                                track_uri: item.uri,
-                                track_name: item.name
-                            })
-                        }
-                    ]
-
-                    tracks.push(track);
-                }
-
-                let attachment = {
-                    color: "#03c2fb",
-                    callback_id: "Dismiss",
-                    actions: [
-                        {
-                            name: "dismiss",
-                            text: "Dismiss",
-                            type: "button",
-                            value: ""
-                        }
-                    ]
-                }
-
-                tracks.push(attachment);
-
-                res.json({
-                    "text": "",
-                    "username": "JukeBot",
-                    "mrkdwn": true,
-                    "attachments": tracks
-                });
-            } else {
-                res.json({
-                    "text": "I didn't find anything... :cry:",
-                    "username": "JukeBot",
-                    "mrkdwn": true
-                });
-            }
-
-        });
-    }
-})
-
-app.post('/interactions', (req, res) => {
-    let payload = JSON.parse(req.body.payload);
-
-    if (payload.token === process.env.SLACK_TOKEN) {
-        let actions = payload.actions;
-
-        switch (payload.callback_id) {
-            case 'Track_Search':
-                let track = payload.actions[0].value;
-                track = JSON.parse(track);
-
-                let user = payload.user;
-
-                console.log(chalk.yellow('Queueing: ') + track.track_name + ' - ' + track.artist)
-                queue.push(track);
-
-                res.status(200).json({
-                    text: ":white_check_mark: @" + user.name + " added _*" + track.track_name + "*_ to the play queue... :notes::musical_note:",
-                    mrkdwn: true,
-                    replace_original: true,
-                    response_type: "in_channel",
-                    attachments: [
-                        {
-                            color: "#01d509",
-                            thumb_url: track.album_url,
-                            fields: [
-                                {
-                                    title: "Album",
-                                    value: track.album_name,
-                                    short: true
-                                },
-                                {
-                                    title: "Artist",
-                                    value: track.artist,
-                                    short: true
-                                }
-                            ]
-                        }
-                    ]
-                });
-                break;
-            case 'Dismiss':
-                 res.status(200).json({
-                    delete_original: true
-                 });
-                break;
-            default:
-                break;
-        }
-
-    } else {
-        res.status(403).end();
-    }
-});
+router(app, state);
 
 app.listen(process.env.PORT, () => {
     console.log(chalk.green("Listening on Port: ") + process.env.PORT + chalk.green("..."));
