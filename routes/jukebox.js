@@ -62,7 +62,7 @@ module.exports.route = (app, state) => {
                         mrkdwn: true
                     });
                 }
-            } else {
+            } else if (state.enabled) {
                 spotify.search(querystring.stringify({
                     type: 'track',
                     q: searchStr,
@@ -143,6 +143,12 @@ module.exports.route = (app, state) => {
                     }
 
 
+                });
+            } else {
+                res.json({
+                    text: '_*Shhhhhh*_ I\'m trying to sleep... :sleeping: :zzz:',
+                    username: 'JukeBot',
+                    mrkdwn: true
                 });
             }
         } else {
