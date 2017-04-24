@@ -8,7 +8,12 @@ const querystring = require('querystring');
 module.exports.route = (app, state) => {
 
     app.get('/', (req, res) => {
-        res.send('JukeBot is Alive!!!');
+        if (state.enabled) {
+            res.send('JukeBot is Alive!!! Party on Wayne..');
+        } else {
+            res.send('JukeBot is Taking a nap');
+        }
+        
     });
     
 }

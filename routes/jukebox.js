@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const spotify = require('../helpers/spotify');
+const manager = require('../workers/manager');
 const chalk = require('chalk');
 const querystring = require('querystring');
 
@@ -10,6 +11,8 @@ module.exports.route = (app, state) => {
     app.post('/jukebox', (req, res) => {
 
         let searchStr = req.body.text ? req.body.text : '';
+        let user = req.body.user_name ? req.body.user_name : '';
+        let admin = process.env.ADMIN;
 
         if (req.body.token === process.env.SLACK_TOKEN) {
 
@@ -19,6 +22,46 @@ module.exports.route = (app, state) => {
                     username: 'JukeBot',
                     mrkdwn: true
                 });
+            } else if (searchStr === '**DISABLE**' && state.enabled) {
+                if (user === admin) {
+                    state.queue = [];
+                    state.enabled = false;
+                    if (state.player) clearInterval(state.player);
+                    if (state.tokenManager) clearInterval(state.tokenManager);
+                    state.pingingCurrentPlayback = false;
+                    state.playingNextTrack = false;
+                    state.accessToken = null;
+
+                    res.json({
+                        text: 'Alright, Now\'s a good time for a nap anyway... :sleeping::zzz:',
+                        username: 'JukeBot',
+                        mrkdwn: true
+                    });
+                } else {
+                    res.json({
+                        text: 'You aren\'t cool enough to have *Admin* superpowers... :sunglasses:',
+                        username: 'JukeBot',
+                        mrkdwn: true
+                    });
+                }
+
+            } else if (searchStr === '**ENABLE**' && !(state.enabled)) {
+                if (user === admin) {
+                    state.enabled = true;
+                    manager(state);
+
+                    res.json({
+                        text: 'Let\'s Do This!',
+                        username: 'JukeBot',
+                        mrkdwn: true
+                    });
+                } else {
+                    res.json({
+                        text: 'You aren\'t cool enough to have *Admin* superpowers... :sunglasses:',
+                        username: 'JukeBot',
+                        mrkdwn: true
+                    });
+                }
             } else {
                 spotify.search(querystring.stringify({
                     type: 'track',

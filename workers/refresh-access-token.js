@@ -37,15 +37,10 @@ module.exports.initialize = (state) => {
 
                     player.initialize(state);
                 });
-            }, 1500);
+            }, 2000);
 
         }, state.tokenTimeoutLimit);
 
     });
-
-
-
-
-
-
+    
 }

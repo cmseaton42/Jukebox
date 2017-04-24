@@ -19,7 +19,8 @@ let state = {
     pingingCurrentPlayback: false,
     playingNextTrack: false,
     refreshingToken: false,
-    accessToken: null
+    accessToken: null,
+    enabled: true
 }
 
 app.use(bodyParser.json());
