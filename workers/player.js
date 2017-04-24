@@ -1,5 +1,6 @@
 require('dotenv').config();
 const spotify = require('../helpers/spotify');
+const slack = require('../helpers/slack-webhook');
 const chalk = require('chalk');
 const querystring = require('querystring');
 
@@ -16,9 +17,9 @@ module.exports.initialize = (state) => {
 
                 state.pingingCurrentPlayback = false;
 
-                if (resp.statusCode !== 200 || resp.statusCode !== 204) {
+                if (resp.statusCode !== 200 && resp.statusCode !== 204) {
                     console.log(chalk.red('Error (' + resp.statusCode + '):') + ' Failed to Retrieve Active Song Data...');
-                } else {
+                } else if (!(state.playingNextTrack)) {
                     let remainingDuration = data.item.duration_ms - (data.progress_ms === null ? 0 : data.progress_ms);
 
                     if (remainingDuration <= (state.pollingRate + 200) || !(data.is_playing)) {
@@ -31,8 +32,41 @@ module.exports.initialize = (state) => {
                             spotify.playTrack(nextTrack.track_uri, state.accessToken, (err, resp) => {
                                 if (err) throw err;
 
-                                if (resp !== 204) {
-                                    console.log(chalk.red('Error (' + resp.statusCode + '):') + ' Failed to Retrieve Active Song Data...\n');
+                                if (resp.statusCode !== 204) {
+                                    console.log(chalk.red('Error (' + resp.statusCode + '):') + ' Failed to Play Song...\n');
+                                } else {
+                                    let message = {
+                                        attachments: [
+                                            {   
+                                                title: 'Now Playing',
+                                                image_url: nextTrack.album_url,
+                                                color: '#b250fc',
+                                            },
+                                            {
+                                                title: nextTrack.track_name,
+                                                color: '#b250fc',
+                                                fields: [
+                                                    {
+                                                        title: 'Album',
+                                                        value: nextTrack.album_name,
+                                                        short: true
+                                                    },
+                                                    {
+                                                        title: 'Artist',
+                                                        value: nextTrack.artist,
+                                                        short: true
+                                                    }
+                                                ],
+                                                footer: 'Powered by Spotify.',
+                                                footer_icon: 'https://raw.githubusercontent.com/gustawho/spotify-kde-integration/master/src/icons/light/spotify-linux-512.png',
+                                               // ts: Date.now()
+                                            }
+                                        ]
+                                    }
+
+                                    slack.postToChannel(message, (err, data) => {
+                                        if (err) throw err;
+                                    });
                                 }
 
                                 state.playingNextTrack = false;

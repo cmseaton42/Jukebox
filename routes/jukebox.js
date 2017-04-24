@@ -13,13 +13,7 @@ module.exports.route = (app, state) => {
 
         if (req.body.token === process.env.SLACK_TOKEN) {
 
-            if (!(req.body.channel_name === 'jukebox' || req.body.channel_name === 'test')) {
-                res.json({
-                    text: 'I _only_ take orders from *Channel: _jukebox_*... :deal_with_it:',
-                    username: 'JukeBot',
-                    mrkdwn: true
-                });
-            } else if (searchStr === '') {
+            if (searchStr === '') {
                 res.json({
                     text: '*HELP:* Start by trying the following command `/jukebox dave matthews band` :notes::musical_note:',
                     username: 'JukeBot',

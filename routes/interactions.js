@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const spotify = require('../helpers/spotify');
+const slack = require('../helpers/slack-webhook');
 const chalk = require('chalk');
 const querystring = require('querystring');
 
@@ -22,15 +23,19 @@ module.exports.route = (app, state) => {
                     track = JSON.parse(track);
 
                     state.queue.push(track);
-                    
+
                     console.log(chalk.yellow('Queueing: ') + track.track_name + ' - ' + track.artist)
 
                     // Respond with Slack Formatted Message
                     res.status(200).json({
+                        text: ':white_check_mark: Alright, I\'ll add _*' + track.track_name + '*_ to the list... :memo:',
+                        mrkdwn: true,
+                        delete_original: true,
+                    });
+
+                    let message = {
                         text: ':white_check_mark: @' + user.name + ' added _*' + track.track_name + '*_ to the play queue... :notes::musical_note:',
                         mrkdwn: true,
-                        replace_original: true,
-                        response_type: 'in_channel',
                         attachments: [
                             {
                                 color: '#01d509',
@@ -49,7 +54,12 @@ module.exports.route = (app, state) => {
                                 ]
                             }
                         ]
+                    }
+
+                    slack.postToChannel(message, (err, resp) => {
+                        if (err) throw err;
                     });
+
                     break;
 
                 case 'Dismiss':
