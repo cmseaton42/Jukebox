@@ -105,7 +105,8 @@ module.exports.route = (app, state) => {
                                         album_url: item.album.images[1].url,
                                         artist: item.artists[0].name,
                                         track_uri: item.uri,
-                                        track_name: item.name
+                                        track_name: item.name,
+                                        track_link: item.href
                                     })
                                 }
                             ]

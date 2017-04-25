@@ -44,6 +44,7 @@ module.exports.initialize = (state) => {
                                             },
                                             {
                                                 title: nextTrack.track_name,
+                                                title_link: nextTrack.track_link,
                                                 color: '#b250fc',
                                                 fields: [
                                                     {
