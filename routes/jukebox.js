@@ -106,7 +106,7 @@ module.exports.route = (app, state) => {
                                         artist: item.artists[0].name,
                                         track_uri: item.uri,
                                         track_name: item.name,
-                                        track_link: item.href
+                                        track_link: item.external_urls.spotify
                                     })
                                 }
                             ]
