@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const spotify = require('../helpers/spotify');
-const slack = require('../helpers/slack-webhook');
+const slack = require('../helpers/slack');
 const chalk = require('chalk');
 const querystring = require('querystring');
 
